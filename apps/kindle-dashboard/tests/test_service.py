@@ -1,0 +1,74 @@
+from __future__ import annotations
+
+import socket
+import threading
+import urllib.request
+from datetime import datetime
+
+from PIL import Image
+
+import dashboard.service as svc
+from dashboard.config import Config
+from dashboard.weather import DayFc, Weather
+
+
+def _weather():
+    return Weather(6.3, 0, 9.9, 3.2, [DayFc("Sun", 3, 7.1), DayFc("Mon", 3, 7.5), DayFc("Tue", 51, 4.8)])
+
+
+def _free_port() -> int:
+    s = socket.socket()
+    s.bind(("127.0.0.1", 0))
+    port = s.getsockname()[1]
+    s.close()
+    return port
+
+
+def test_render_once_writes_png(tmp_path, monkeypatch):
+    cfg = Config(lat=1, lon=2, units="C", out_dir=str(tmp_path))
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
+    monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+    p = svc.render_once(cfg, datetime(2026, 11, 21, 14, 0))
+    assert p.exists()
+    img = Image.open(p)
+    assert img.mode == "L"
+    assert img.size == (600, 800)
+
+
+def test_fetch_failure_keeps_last_good(tmp_path, monkeypatch):
+    cfg = Config(lat=1, lon=2, units="C", out_dir=str(tmp_path))
+    # First, a successful render to seed the last-good cache.
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
+    monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+    svc.render_once(cfg, datetime(2026, 11, 21, 14, 0))
+
+    # Now the weather fetch fails; render_once must still produce a PNG, marked stale.
+    def boom(c):
+        raise RuntimeError("no network")
+
+    captured = {}
+    real_render = svc.render_dashboard
+
+    def spy(*a, **k):
+        captured["stale"] = k.get("stale")
+        return real_render(*a, **k)
+
+    monkeypatch.setattr(svc, "fetch_weather", boom)
+    monkeypatch.setattr(svc, "render_dashboard", spy)
+    p = svc.render_once(cfg, datetime(2026, 11, 21, 14, 20))
+    assert p.exists()
+    assert Image.open(p).size == (600, 800)
+    assert captured["stale"] is True
+
+
+def test_server_serves_png(tmp_path):
+    Image.new("L", (600, 800), 255).save(tmp_path / "dashboard.png")
+    cfg = Config(lat=1, lon=2, out_dir=str(tmp_path), server_host="127.0.0.1", server_port=_free_port())
+    httpd = svc.make_server(cfg)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        r = urllib.request.urlopen(f"http://127.0.0.1:{cfg.server_port}/dashboard.png", timeout=5)
+        assert r.status == 200
+        assert r.headers.get_content_type() == "image/png"
+    finally:
+        httpd.shutdown()
