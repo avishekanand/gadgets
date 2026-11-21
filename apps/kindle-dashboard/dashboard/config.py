@@ -29,6 +29,12 @@ class Config:
     # how many stories. Set news_count = 0 (or news = []) to hide the block.
     news_section: str = "US"
     news_count: int = 3
+
+    # Multi-panel sleep rotation: when panel_sections is non-empty, the renderer
+    # emits one Agenda panel plus one full-screen news panel per section listed,
+    # and KOReader's folder screensaver shows a different one each time it sleeps.
+    panel_sections: list[str] = field(default_factory=list)
+    panel_news_count: int = 5  # stories per full-screen news panel
     news: list[dict] = field(default_factory=lambda: [
         {"section": "US", "name": "NPR", "url": "https://feeds.npr.org/1001/rss.xml"},
         {"section": "US", "name": "NYT", "url": "https://rss.nytimes.com/services/xml/rss/nyt/US.xml"},

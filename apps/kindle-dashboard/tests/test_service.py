@@ -122,3 +122,45 @@ def test_server_serves_png(tmp_path):
         assert r.headers.get_content_type() == "image/png"
     finally:
         httpd.shutdown()
+
+
+def test_render_panels_writes_agenda_plus_one_per_section(tmp_path, monkeypatch):
+    cfg = Config(lat=1, lon=2, out_dir=str(tmp_path),
+                 panel_sections=["US", "Science"], panel_news_count=5)
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
+    monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+    monkeypatch.setattr(svc, "fetch_headlines", lambda feeds, sec, n: _headlines())
+    paths = svc.render_panels(cfg, datetime(2026, 11, 21, 14, 0))
+    names = [p.name for p in paths]
+    assert names == ["panel-0-agenda.png", "panel-1-us.png", "panel-2-science.png"]
+    for p in paths:
+        assert p.exists()
+        assert Image.open(p).size == (600, 800)
+
+
+def test_render_panels_one_dead_section_does_not_sink_the_set(tmp_path, monkeypatch):
+    cfg = Config(lat=1, lon=2, out_dir=str(tmp_path), panel_sections=["US", "Science"])
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
+    monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+
+    def headlines(feeds, sec, n):
+        if sec == "Science":
+            raise RuntimeError("all news feeds failed")
+        return _headlines()
+
+    monkeypatch.setattr(svc, "fetch_headlines", headlines)
+    paths = svc.render_panels(cfg, datetime(2026, 11, 21, 14, 0))
+    assert [p.name for p in paths] == ["panel-0-agenda.png", "panel-1-us.png", "panel-2-science.png"]
+    assert all(p.exists() for p in paths)  # Science panel still rendered (empty)
+
+
+def test_render_panels_falls_back_to_last_good(tmp_path, monkeypatch):
+    cfg = Config(lat=1, lon=2, out_dir=str(tmp_path), panel_sections=["US"])
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
+    monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+    monkeypatch.setattr(svc, "fetch_headlines", lambda feeds, sec, n: _headlines())
+    svc.render_panels(cfg, datetime(2026, 11, 21, 14, 0))  # seed cache
+
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: (_ for _ in ()).throw(RuntimeError("down")))
+    paths = svc.render_panels(cfg, datetime(2026, 11, 21, 14, 20))  # must not raise
+    assert all(p.exists() for p in paths)

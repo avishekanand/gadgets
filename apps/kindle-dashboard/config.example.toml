@@ -32,6 +32,13 @@ calendars = [
 # section as a compact HEADLINES block at the bottom of the agenda column.
 news_section = "US"      # which section to show: US, India, Science, "arXiv · IR", AI, Tech
 news_count = 3           # how many stories (0 hides the block)
+
+# Multi-panel sleep rotation (`python -m dashboard panels`): writes an Agenda
+# panel plus one full-screen news panel per section into out_dir as panel-*.png.
+# Point KOReader's folder screensaver at that folder and it shows a different
+# card each time the Kindle sleeps. Leave panel_sections empty to disable.
+panel_sections = ["US", "Science", "arXiv · IR"]
+panel_news_count = 5     # stories per full-screen news panel
 # `news` defaults to the built-in feed list (NPR/NYT, The Hindu/NDTV, Quanta/Nature,
 # arXiv cs.IR, MIT TR/TechCrunch, Ars/Verge). Override only to customise feeds, e.g.:
 # news = [

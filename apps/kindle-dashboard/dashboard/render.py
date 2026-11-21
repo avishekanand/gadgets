@@ -37,6 +37,33 @@ def truncate(text: str, font, max_px: float) -> str:
     return text + ell
 
 
+def _wrap(text: str, font, max_px: float, max_lines: int) -> list[str]:
+    """Greedy word-wrap into at most max_lines lines; ellipsise if it overflows."""
+    words = text.split()
+    lines: list[str] = []
+    cur = ""
+    i = 0
+    while i < len(words):
+        trial = (cur + " " + words[i]).strip()
+        if font.getlength(trial) <= max_px or not cur:
+            cur = trial
+            i += 1
+        else:
+            lines.append(cur)
+            cur = ""
+            if len(lines) == max_lines:
+                break
+    if cur and len(lines) < max_lines:
+        lines.append(cur)
+        i = len(words)
+    if i < len(words) and lines:  # text remained → ellipsise the last line
+        last = lines[-1]
+        while last and font.getlength(last + "…") > max_px:
+            last = last[:-1]
+        lines[-1] = last.rstrip() + "…"
+    return lines
+
+
 def _day_label(day: date, today: date) -> str:
     if day == today + timedelta(days=1):
         return "Tomorrow"
@@ -132,6 +159,80 @@ def _draw_headlines(d, news, x, y, w, section, fonts):
             d.text((x + 20, y), src, font=f_src, fill=FAINT)
         y += 28
     return y
+
+
+def render_news_panel(
+    section: str,
+    items: list[dict],
+    cfg: Config,
+    updated: datetime,
+    stale: bool = False,
+) -> Image.Image:
+    """A full-screen news card, device-ready 600x800. Follows cfg.orientation so
+    it reads upright the same way as the Agenda panel: in landscape it is composed
+    at 800x600 and rotated 90°; in portrait it is drawn at 600x800 directly."""
+    if cfg.orientation == "landscape":
+        canvas = _compose_news(section, items, cfg, updated, stale, (800, 600))
+        return canvas.transpose(Image.ROTATE_90 if cfg.flip else Image.ROTATE_270)
+    return _compose_news(section, items, cfg, updated, stale, (W, H))
+
+
+# Worst-case height of one story: 2-line title + 2-line summary + source + gaps.
+_STORY_MAX_H = 2 * 29 + 2 * 23 + 21 + 18
+_FOOTER_RESERVE = 34
+
+
+def _compose_news(
+    section: str,
+    items: list[dict],
+    cfg: Config,
+    updated: datetime,
+    stale: bool = False,
+    size: tuple[int, int] = (800, 600),
+) -> Image.Image:
+    LW, LH = size
+    img = Image.new("L", (LW, LH), 255)
+    d = ImageDraw.Draw(img)
+    pad = 28
+    f_hdr = _font(30)
+    f_title = _font(25)
+    f_sum = _font(18)
+    f_src = _font(16)
+    f_foot = _font(16)
+
+    head = ("HEADLINES · " + section.upper()) if section else "HEADLINES"
+    d.text((pad, 22), head, font=f_hdr, fill=INK)
+    d.line([pad, 64, LW - pad, 64], fill=INK, width=2)
+
+    maxw = LW - 2 * pad - 16
+    x = pad + 16
+    y = 82
+    # Stop before a worst-case story could overrun the footer / canvas bottom.
+    limit = LH - _STORY_MAX_H - _FOOTER_RESERVE
+    if not items:
+        d.text((x, y), "No headlines available.", font=f_title, fill=GRAY)
+    for it in items:
+        if y > limit:
+            break
+        for ln in _wrap(it.get("title", ""), f_title, maxw, 2):
+            d.text((x, y), ln, font=f_title, fill=INK)
+            y += 29
+        summ = it.get("summary", "")
+        if summ:
+            for ln in _wrap(summ, f_sum, maxw, 2):
+                d.text((x, y), ln, font=f_sum, fill=GRAY)
+                y += 23
+        src = it.get("source", "")
+        if src:
+            d.text((x, y), src, font=f_src, fill=FAINT)
+            y += 21
+        y += 12
+        d.line([pad, y - 6, LW - pad, y - 6], fill=BAND, width=1)
+        y += 6
+
+    foot = "updated " + updated.strftime("%H:%M") + ("  ·  stale" if stale else "")
+    d.text((pad, LH - 28), foot, font=f_foot, fill=FAINT)
+    return img
 
 
 def _compose_portrait(

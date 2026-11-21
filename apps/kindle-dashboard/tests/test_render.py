@@ -6,7 +6,15 @@ from PIL import ImageFont
 
 from dashboard.calendar import Event
 from dashboard.config import Config
-from dashboard.render import _compose_landscape, render_dashboard, select_rows, truncate
+from dashboard.render import (
+    _compose_news,
+    _wrap,
+    _compose_landscape,
+    render_dashboard,
+    render_news_panel,
+    select_rows,
+    truncate,
+)
 from dashboard.weather import DayFc, Weather
 
 CFG = Config(lat=52.0, lon=4.3, units="C")
@@ -80,3 +88,77 @@ def test_divider_names_non_tomorrow_day_by_weekday():
     rows = select_rows(ag, today, 8)
     assert ("divider", "Monday") in rows
     assert ("divider", "Tomorrow") not in rows
+
+
+def _news(n=5):
+    return [{"title": f"Story number {i} with a fairly long headline that will wrap",
+             "summary": "A summary sentence that is long enough to span two lines on the panel so we exercise wrapping.",
+             "source": "The Verge"} for i in range(n)]
+
+
+def test_wrap_limits_lines_and_ellipsises():
+    f = ImageFont.load_default(size=18)
+    lines = _wrap("word " * 80, f, 200, 2)
+    assert len(lines) == 2
+    assert lines[-1].endswith("…")
+    assert all(f.getlength(ln) <= 200 for ln in lines)
+
+
+def test_news_panel_is_device_portrait_size():
+    img = render_news_panel("US", _news(), CFG, datetime(2026, 11, 21, 14, 0))
+    assert img.mode == "L"
+    assert img.size == (600, 800)
+
+
+def test_news_panel_differs_by_content():
+    a = _compose_news("US", _news(), CFG, datetime(2026, 11, 21, 14, 0))
+    b = _compose_news("Science", _news(), CFG, datetime(2026, 11, 21, 14, 0))
+    assert a.size == (800, 600)
+    assert list(a.getdata()) != list(b.getdata())
+
+
+def _mixed_news():
+    # Short title-only items creep y toward the boundary, then a full
+    # 2-line-title + 2-line-summary story — the case that overran the footer.
+    short = [{"title": f"Short one {i}", "source": "NPR"} for i in range(9)]
+    full = [{"title": "A very long headline that certainly wraps onto a second line here",
+             "summary": "And a summary long enough to also span two full lines on the news panel body.",
+             "source": "The Verge gpy"}]
+    return short + full
+
+
+def test_news_panel_does_not_clip_bottom_uniform():
+    img = _compose_news("US", _news(8), CFG, datetime(2026, 11, 21, 14, 0))
+    px = img.load()
+    for yy in (598, 599):
+        assert all(px[xx, yy] == 255 for xx in range(800))
+
+
+def test_news_panel_does_not_clip_bottom_mixed_lengths():
+    img = _compose_news("US", _mixed_news(), CFG, datetime(2026, 11, 21, 14, 0))
+    px = img.load()
+    # bottom rows and the footer band must stay clear of story text
+    for yy in (568, 598, 599):
+        assert all(px[xx, yy] == 255 for xx in range(800))
+
+
+def test_news_panel_portrait_does_not_clip_bottom():
+    cfg = Config(lat=52.0, lon=4.3, orientation="portrait")
+    img = _compose_news("US", _mixed_news(), cfg, datetime(2026, 11, 21, 14, 0), size=(600, 800))
+    px = img.load()
+    for yy in (798, 799):
+        assert all(px[xx, yy] == 255 for xx in range(600))
+
+
+def test_news_panel_handles_empty():
+    img = render_news_panel("US", [], CFG, datetime(2026, 11, 21, 14, 0))
+    assert img.size == (600, 800)
+
+
+def test_news_panel_follows_orientation():
+    land = Config(lat=52.0, lon=4.3, orientation="landscape")
+    port = Config(lat=52.0, lon=4.3, orientation="portrait")
+    a = render_news_panel("US", _news(), land, datetime(2026, 11, 21, 14, 0))
+    b = render_news_panel("US", _news(), port, datetime(2026, 11, 21, 14, 0))
+    assert a.size == b.size == (600, 800)
+    assert list(a.getdata()) != list(b.getdata())  # genuinely different orientation
