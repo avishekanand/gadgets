@@ -63,5 +63,7 @@ sketches/
 ├── 05_Microphone_Record/ # ES8311 mic capture + amplitude meter
 ├── 06_WiFi_Connection/   # Wi‑Fi association test (copy wifi_secrets.h.example → wifi_secrets.h)
 ├── 10_Display_Test/      # ST77922 display + touch bring‑up (custom panel class)
-└── 11_Touch_Probe/       # touch register reverse‑engineering probe
+├── 11_Touch_Probe/       # touch register reverse‑engineering probe
+├── 12_WiFi_Scan/         # list visible networks (check SSID / 2.4 GHz band)
+└── 13_WiFi_Connect_Test/ # join + print disconnect reason codes (wrong password vs. no AP)
 ```
