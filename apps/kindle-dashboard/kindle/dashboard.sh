@@ -23,6 +23,9 @@ log() { echo "$(date) $*" >> /mnt/us/dashboard/dashboard.log; }
 
 wifi_up() {
     # DEVICE-SPECIFIC: enable radio via lab126 lipc, then wait for an IP.
+    # NOTE: lipc talks to the framework (com.lab126.cmd). Keep the framework
+    # running (suppress-screensaver.sh default) so this works; if you later
+    # stop the framework, replace this with a wpa_cli/ifconfig path.
     lipc-set-prop com.lab126.cmd wirelessEnable 1 2>/dev/null
     i=0
     while [ $i -lt 20 ]; do
@@ -49,9 +52,12 @@ fetch_and_paint() {
 
 suspend() {
     T=$((REFRESH_MIN * 60))
-    echo 0 > "$RTC" 2>/dev/null
-    echo "+$T" > "$RTC" 2>/dev/null
-    log "suspend ${T}s"
+    # The 2.6.31 rtc sysfs wants an ABSOLUTE epoch, not the rtcwake "+N" form
+    # (which newer kernels accept). Compute now + T.
+    NOW=$(cat /sys/class/rtc/rtc1/since_epoch 2>/dev/null || date +%s)
+    echo 0 > "$RTC" 2>/dev/null              # clear any pending alarm
+    echo $((NOW + T)) > "$RTC" 2>/dev/null   # absolute wake time
+    log "suspend ${T}s (wake at $((NOW + T)))"
     echo mem > /sys/power/state 2>/dev/null   # DEVICE-SPECIFIC deep suspend
 }
 

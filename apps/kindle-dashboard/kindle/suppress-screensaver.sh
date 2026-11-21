@@ -7,11 +7,15 @@
 # is the heavy hammer; a lighter approach (disabling just the screensaver via
 # lipc) is tried first and this is the fallback.
 
-# Lighter: ask the powerd/screensaver not to draw. Harmless if unsupported.
+# Lighter method (default): ask powerd not to draw the screensaver, leaving
+# the framework running. dashboard.sh's Wi-Fi enable (lipc) needs the
+# framework, so this is the safe default — the two scripts don't fight.
 lipc-set-prop com.lab126.powerd preventScreenSaver 1 2>/dev/null || true
 
 # Heavier fallback: stop the GUI framework so nothing repaints the panel.
-# Comment out if the lighter method alone is enough on this firmware.
-if [ "${STOP_FRAMEWORK:-1}" = "1" ]; then
+# OFF by default: stopping the framework also kills the lipc Wi-Fi path in
+# dashboard.sh, so only enable this (STOP_FRAMEWORK=1) together with a
+# framework-independent Wi-Fi method (wpa_cli/ifconfig) in dashboard.sh.
+if [ "${STOP_FRAMEWORK:-0}" = "1" ]; then
     stop lab126_gui 2>/dev/null || /etc/init.d/framework stop 2>/dev/null || true
 fi
