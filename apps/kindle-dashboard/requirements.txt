@@ -1,0 +1,6 @@
+Pillow==10.4.0
+icalendar==5.0.13
+recurring-ical-events==2.2.3
+tomli==2.0.1
+python-dateutil==2.9.0.post0
+pytest==8.3.3

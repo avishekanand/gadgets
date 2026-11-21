@@ -1,0 +1,20 @@
+# Kindle Fridge Dashboard — example config.
+# Copy to config.toml and fill in your two calendar iCal URLs.
+#
+# Get each URL from Google Calendar → (hover a calendar) Settings →
+# "Integrate calendar" → "Secret address in iCal format". One per calendar.
+
+lat = 52.0116            # Delft
+lon = 4.3571
+units = "C"              # "C" or "F"
+tz = "Europe/Amsterdam"
+refresh_min = 20         # how often the Kindle refreshes (minutes)
+server_host = "0.0.0.0"  # bind address for the LAN image server
+server_port = 8713
+out_dir = "./out"        # where dashboard.png is written/served from
+agenda_rows = 8          # max agenda rows drawn
+
+calendars = [
+  "https://calendar.google.com/calendar/ical/REPLACE_PRIMARY%40gmail.com/private-REPLACE/basic.ics",
+  "https://calendar.google.com/calendar/ical/REPLACE_FAMILY%40group.calendar.google.com/private-REPLACE/basic.ics",
+]
