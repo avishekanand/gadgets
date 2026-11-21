@@ -1,0 +1,40 @@
+{
+	"items": [
+	{
+		"name": "Gadgets SSH",
+		"priority": 1,
+		"items": [
+		{
+			"name": "Start SSH (port 2222, key only)",
+			"priority": 1,
+			"action": "./bin/ssh.sh",
+			"params": "start",
+			"exitmenu": false,
+			"refresh": false,
+			"status": false,
+			"internal": "status Starting SSH . . ."
+		},
+		{
+			"name": "Stop SSH",
+			"priority": 2,
+			"action": "./bin/ssh.sh",
+			"params": "stop",
+			"exitmenu": false,
+			"refresh": false,
+			"status": false,
+			"internal": "status Stopping SSH . . ."
+		},
+		{
+			"name": "Write diagnostics",
+			"priority": 3,
+			"action": "./bin/ssh.sh",
+			"params": "diag",
+			"exitmenu": false,
+			"refresh": false,
+			"status": false,
+			"internal": "status Writing diagnostics . . ."
+		}
+		]
+	}
+	]
+}

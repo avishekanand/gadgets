@@ -12,7 +12,8 @@ drawer — usually paired with a server running on a Mac on the same LAN.
 │   ├── kindle/           #   jailbroken 2012 Kindle as an e‑ink display
 │   └── fire-android/     #   2015 Fire tablet (Android 5.1) as a colour touch console
 └── apps/                 # one folder per app; subfolders per target it runs on
-    └── chatbot-dog/      #   voice chatbot: esp32/ firmware + server/ Mac brain + enclosure/
+    ├── chatbot-dog/      #   voice chatbot: esp32/ firmware + server/ Mac brain + enclosure/
+    └── arxiv-to-kindle/  #   arXiv paper → EPUB → Kindle over SSH
 ```
 
 **Conventions**
@@ -29,11 +30,12 @@ drawer — usually paired with a server running on a Mac on the same LAN.
 | App | Platforms | What it does |
 |---|---|---|
 | [chatbot-dog](apps/chatbot-dog/) | ESP32‑S3 + Mac | Push‑to‑talk voice chatbot "Pip" with local STT → LLM → TTS |
+| [arxiv-to-kindle](apps/arxiv-to-kindle/) | Kindle + Mac | Send arXiv papers to the Kindle as reflowable EPUB (or PDF) |
 
 ## Platforms
 
 | Platform | Notes |
 |---|---|
 | [esp32](platforms/esp32/) | arduino‑cli toolchain, `esp.sh`, LCDWIKI ES3C35P board |
-| [kindle](platforms/kindle/) | 2012 Kindle, jailbreak in progress |
+| [kindle](platforms/kindle/) | Non‑touch Kindle 4 (FW 4.1.3): jailbroken, KUAL + MRPI + KOReader |
 | [fire-android](platforms/fire-android/) | ~2015 Fire tablet, Fire OS 5 / Android 5.1, ADB from the Mac |
