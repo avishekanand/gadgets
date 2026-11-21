@@ -16,6 +16,8 @@ server_host = "0.0.0.0"  # bind address for the LAN image server
 server_port = 8713
 out_dir = "./out"        # where dashboard.png is written/served from
 agenda_rows = 8          # max agenda rows drawn
+orientation = "landscape"  # "portrait" or "landscape" (landscape adds an hourly strip)
+flip = false             # set true if the landscape image shows upside down
 
 # Preferred: pull the agenda from the local Atlas app.
 atlas_url = "http://127.0.0.1:8765"

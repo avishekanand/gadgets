@@ -218,6 +218,18 @@ def _compose_landscape(
     d.text((pad, 150), _fmt_temp(weather.temp_c, cfg.units), font=f_big, fill=INK)
     d.text((pad, 262), f"H {_fmt_temp(weather.hi_c, cfg.units)}   L {_fmt_temp(weather.lo_c, cfg.units)}", font=f_hilo, fill=GRAY)
 
+    # hourly strip (next few hours)
+    if weather.hourly:
+        hy = 322
+        d.text((pad, hy), "NEXT HOURS", font=f_label, fill=GRAY)
+        f_hr, f_ht = _font(16), _font(19)
+        n = len(weather.hourly)
+        hw = (col - 2 * pad) // n
+        for i, hr in enumerate(weather.hourly):
+            cx = pad + hw * i + hw // 2
+            d.text((cx, hy + 28), hr.label[:2], font=f_hr, fill=GRAY, anchor="ma")
+            d.text((cx, hy + 50), _fmt_temp(hr.temp_c, cfg.units), font=f_ht, fill=INK, anchor="ma")
+
     fc_y = 452
     d.line([pad, fc_y - 18, col - pad, fc_y - 18], fill=FAINT, width=2)
     cell_w = (col - 2 * pad) // 3

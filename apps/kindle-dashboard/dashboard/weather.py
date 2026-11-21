@@ -4,7 +4,7 @@ from __future__ import annotations
 import json
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 
 from dashboard.config import Config
@@ -21,12 +21,20 @@ class DayFc:
 
 
 @dataclass
+class Hour:
+    label: str  # "HH:MM"
+    temp_c: float
+    code: int
+
+
+@dataclass
 class Weather:
     temp_c: float
     code: int
     hi_c: float
     lo_c: float
     forecast: list[DayFc]
+    hourly: list[Hour] = field(default_factory=list)
 
 
 def weather_glyph(code: int) -> str:
@@ -48,6 +56,21 @@ def weather_glyph(code: int) -> str:
     return "cloud"
 
 
+def parse_hourly(payload: dict, count: int = 6) -> list[Hour]:
+    """The next `count` hours strictly after the current time."""
+    h = payload.get("hourly")
+    if not h:
+        return []
+    cur = payload["current"]["time"]
+    out: list[Hour] = []
+    for t, temp, code in zip(h["time"], h["temperature_2m"], h["weather_code"]):
+        if t > cur:
+            out.append(Hour(t[11:16], temp, code))
+            if len(out) >= count:
+                break
+    return out
+
+
 def parse_weather(payload: dict) -> Weather:
     cur = payload["current"]
     daily = payload["daily"]
@@ -62,6 +85,7 @@ def parse_weather(payload: dict) -> Weather:
         hi_c=daily["temperature_2m_max"][0],
         lo_c=daily["temperature_2m_min"][0],
         forecast=fc,
+        hourly=parse_hourly(payload),
     )
 
 
@@ -70,6 +94,7 @@ def fetch_weather(cfg: Config) -> Weather:
         "latitude": cfg.lat,
         "longitude": cfg.lon,
         "current": "temperature_2m,weather_code",
+        "hourly": "temperature_2m,weather_code",
         "daily": "weather_code,temperature_2m_max,temperature_2m_min",
         "timezone": cfg.tz,
         "forecast_days": 4,
