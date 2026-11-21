@@ -9,7 +9,8 @@ drawer — usually paired with a server running on a Mac on the same LAN.
 .
 ├── platforms/            # one folder per hardware family: toolchain, board notes, bring‑up
 │   ├── esp32/            #   arduino‑cli helper (esp.sh), ES3C35P board, test sketches
-│   └── kindle/           #   jailbroken 2012 Kindle as an e‑ink display
+│   ├── kindle/           #   jailbroken 2012 Kindle as an e‑ink display
+│   └── fire-android/     #   2015 Fire tablet (Android 5.1) as a colour touch console
 └── apps/                 # one folder per app; subfolders per target it runs on
     └── chatbot-dog/      #   voice chatbot: esp32/ firmware + server/ Mac brain + enclosure/
 ```
@@ -35,3 +36,4 @@ drawer — usually paired with a server running on a Mac on the same LAN.
 |---|---|
 | [esp32](platforms/esp32/) | arduino‑cli toolchain, `esp.sh`, LCDWIKI ES3C35P board |
 | [kindle](platforms/kindle/) | 2012 Kindle, jailbreak in progress |
+| [fire-android](platforms/fire-android/) | ~2015 Fire tablet, Fire OS 5 / Android 5.1, ADB from the Mac |
