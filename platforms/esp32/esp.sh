@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Helper for the LCDWIKI ES3C35P (ESP32-S3 + ES8311) board.
-# Usage:
+# Usage (from the repo root), e.g. platforms/esp32/esp.sh flash apps/chatbot-dog/esp32/20_Chatbot_STT
 #   ./esp.sh build  <sketch_dir>
 #   ./esp.sh flash  <sketch_dir>        (compile + upload)
 #   ./esp.sh monitor                    (serial @115200)
