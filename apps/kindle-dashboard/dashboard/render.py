@@ -5,7 +5,7 @@ Footer: "updated HH:MM". No clock. Weather glyphs are drawn, not fonted.
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -37,15 +37,21 @@ def truncate(text: str, font, max_px: float) -> str:
     return text + ell
 
 
+def _day_label(day: date, today: date) -> str:
+    if day == today + timedelta(days=1):
+        return "Tomorrow"
+    return day.strftime("%A")  # e.g. "Monday"
+
+
 def select_rows(agenda: list[Event], today: date, max_rows: int) -> list[Row]:
-    """Flatten the agenda into drawable rows, inserting a 'Tomorrow' divider
-    before the first event past `today`. Capped at max_rows."""
+    """Flatten the agenda into drawable rows, inserting a divider before each
+    new day past `today` (named 'Tomorrow' or the weekday). Capped at max_rows."""
     rows: list[Row] = []
-    divided = False
+    last_day: date | None = None
     for e in agenda:
-        if e.day > today and not divided:
-            rows.append(("divider", "Tomorrow"))
-            divided = True
+        if e.day != today and e.day != last_day:
+            rows.append(("divider", _day_label(e.day, today)))
+        last_day = e.day
         rows.append(("event", e))
         if len(rows) >= max_rows:
             break

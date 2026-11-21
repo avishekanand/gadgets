@@ -39,3 +39,12 @@ def test_agenda_spills_to_tomorrow():
     ]
     rows = select_rows(ag, today, 8)
     assert ("divider", "Tomorrow") in rows
+
+
+def test_divider_names_non_tomorrow_day_by_weekday():
+    today = date(2026, 11, 21)  # Saturday
+    monday = date(2026, 11, 23)
+    ag = [Event(datetime(2026, 11, 23, 9, 0), False, "X", monday)]
+    rows = select_rows(ag, today, 8)
+    assert ("divider", "Monday") in rows
+    assert ("divider", "Tomorrow") not in rows

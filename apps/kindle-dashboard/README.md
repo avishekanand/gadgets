@@ -16,8 +16,11 @@ python3 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
 cp config.example.toml config.toml   # then fill in your two calendar iCal URLs
 ```
 
-Calendar URLs come from Google Calendar → each calendar's **Settings → Integrate
-calendar → "Secret address in iCal format"**. No OAuth or Google Cloud project needed.
+**Calendar source.** Preferred is the local **Atlas** app (repo: `voice-email`),
+which already indexes and merges all your calendars — set `atlas_url` in the config
+and nothing else is needed. As a fallback, leave `atlas_url` unset and list Google
+Calendar **Settings → Integrate calendar → "Secret address in iCal format"** URLs in
+`calendars` (no OAuth or Google Cloud project needed).
 
 ## Config
 

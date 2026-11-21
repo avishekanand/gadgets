@@ -17,6 +17,7 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from dashboard.atlas import fetch_atlas_agenda
 from dashboard.calendar import fetch_agenda
 from dashboard.config import Config
 from dashboard.render import render_dashboard
@@ -34,7 +35,7 @@ def render_once(cfg: Config, now: datetime) -> Path:
 
     try:
         weather = fetch_weather(cfg)
-        agenda = fetch_agenda(cfg, now)
+        agenda = fetch_atlas_agenda(cfg, now) if cfg.atlas_url else fetch_agenda(cfg, now)
         updated = now
         cache.write_bytes(pickle.dumps((weather, agenda, updated)))
         stale = False
