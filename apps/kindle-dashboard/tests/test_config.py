@@ -13,7 +13,9 @@ def test_loads_example_values():
     assert cfg.lat == 52.0116
     assert cfg.tz == "Europe/Amsterdam"
     assert cfg.refresh_min == 20
-    assert len(cfg.calendars) == 2
+    # The example uses Atlas as the calendar source (iCal URLs are the fallback).
+    assert cfg.atlas_url == "http://127.0.0.1:8765"
+    assert cfg.atlas_mine is True
 
 
 def test_minimal_config_uses_defaults(tmp_path):
