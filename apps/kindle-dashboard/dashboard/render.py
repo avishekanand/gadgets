@@ -101,6 +101,24 @@ def render_dashboard(
     cfg: Config,
     updated: datetime,
     stale: bool = False,
+    orientation: str | None = None,
+) -> Image.Image:
+    """Device-ready 600x800 greyscale image for eips. In landscape mode the
+    content is composed at 800x600 and rotated 90° so it reads upright when the
+    Kindle is turned on its side."""
+    mode = orientation or cfg.orientation
+    if mode == "landscape":
+        canvas = _compose_landscape(weather, agenda, cfg, updated, stale)
+        return canvas.transpose(Image.ROTATE_90 if cfg.flip else Image.ROTATE_270)
+    return _compose_portrait(weather, agenda, cfg, updated, stale)
+
+
+def _compose_portrait(
+    weather: Weather,
+    agenda: list[Event],
+    cfg: Config,
+    updated: datetime,
+    stale: bool = False,
 ) -> Image.Image:
     img = Image.new("L", (W, H), 255)
     d = ImageDraw.Draw(img)
@@ -163,6 +181,78 @@ def render_dashboard(
     # ---- footer ----
     foot = "updated " + updated.strftime("%H:%M") + ("  ·  stale" if stale else "")
     d.text((rx, H - 34), foot, font=f_foot, fill=FAINT)
+
+    return img
+
+
+def _compose_landscape(
+    weather: Weather,
+    agenda: list[Event],
+    cfg: Config,
+    updated: datetime,
+    stale: bool = False,
+) -> Image.Image:
+    LW, LH = 800, 600
+    col = 300  # weather column width
+    img = Image.new("L", (LW, LH), 255)
+    d = ImageDraw.Draw(img)
+
+    f_label = _font(18)
+    f_big = _font(92)
+    f_hilo = _font(28)
+    f_fc_day = _font(20)
+    f_fc_hi = _font(22)
+    f_sec = _font(24)
+    f_time = _font(24)
+    f_title = _font(26)
+    f_div = _font(20)
+    f_foot = _font(18)
+
+    today = updated.date()
+    pad = 22
+
+    # ---- left weather column ----
+    d.rectangle([0, 0, col, LH], fill=BAND)
+    d.text((pad, 20), "NOW", font=f_label, fill=GRAY)
+    _draw_glyph(d, weather_glyph(weather.code), col // 2, 96, 40)
+    d.text((pad, 150), _fmt_temp(weather.temp_c, cfg.units), font=f_big, fill=INK)
+    d.text((pad, 262), f"H {_fmt_temp(weather.hi_c, cfg.units)}   L {_fmt_temp(weather.lo_c, cfg.units)}", font=f_hilo, fill=GRAY)
+
+    fc_y = 452
+    d.line([pad, fc_y - 18, col - pad, fc_y - 18], fill=FAINT, width=2)
+    cell_w = (col - 2 * pad) // 3
+    for i, day in enumerate(weather.forecast[:3]):
+        cx = pad + cell_w * i + cell_w // 2
+        d.text((cx, fc_y), day.day_abbr, font=f_fc_day, fill=GRAY, anchor="ma")
+        _draw_glyph(d, weather_glyph(day.code), cx, fc_y + 50, 18)
+        d.text((cx, fc_y + 84), _fmt_temp(day.hi_c, cfg.units), font=f_fc_hi, fill=INK, anchor="ma")
+
+    # ---- right agenda column (wider, shorter) ----
+    rx = col + 24
+    rw = LW - rx - 20
+    d.text((rx, 20), updated.strftime("%a %-d %b").upper(), font=f_sec, fill=INK)
+    d.line([rx, 56, LW - 20, 56], fill=FAINT, width=2)
+
+    y = 74
+    line_h = 44
+    max_rows = min(cfg.agenda_rows, 9)  # fewer rows fit in 600px height
+    for kind, payload in select_rows(agenda, today, max_rows):
+        if kind == "divider":
+            y += 6
+            d.text((rx, y), payload, font=f_div, fill=GRAY)
+            d.line([rx, y + 24, LW - 20, y + 24], fill=FAINT, width=1)
+            y += 34
+            continue
+        e: Event = payload
+        if e.all_day:
+            d.text((rx, y), "all-day", font=f_time, fill=FAINT)
+        else:
+            d.text((rx, y), e.start.strftime("%H:%M"), font=f_time, fill=GRAY)
+        d.text((rx + 90, y - 1), truncate(e.title, f_title, rw - 90), font=f_title, fill=INK)
+        y += line_h
+
+    foot = "updated " + updated.strftime("%H:%M") + ("  ·  stale" if stale else "")
+    d.text((rx, LH - 32), foot, font=f_foot, fill=FAINT)
 
     return img
 

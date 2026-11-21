@@ -6,7 +6,7 @@ from PIL import ImageFont
 
 from dashboard.calendar import Event
 from dashboard.config import Config
-from dashboard.render import render_dashboard, select_rows, truncate
+from dashboard.render import _compose_landscape, render_dashboard, select_rows, truncate
 from dashboard.weather import DayFc, Weather
 
 CFG = Config(lat=52.0, lon=4.3, units="C")
@@ -20,6 +20,17 @@ def test_image_size_and_mode():
     img = render_dashboard(_weather(), [], CFG, datetime(2026, 11, 21, 14, 32))
     assert img.mode == "L"
     assert img.size == (600, 800)
+
+
+def test_landscape_canvas_is_800x600():
+    img = _compose_landscape(_weather(), [], CFG, datetime(2026, 11, 21, 14, 0))
+    assert img.size == (800, 600)
+
+
+def test_landscape_render_is_device_portrait_size():
+    img = render_dashboard(_weather(), [], CFG, datetime(2026, 11, 21, 14, 0), orientation="landscape")
+    assert img.mode == "L"
+    assert img.size == (600, 800)  # rotated 90° for the device framebuffer
 
 
 def test_truncate_adds_ellipsis():

@@ -18,6 +18,8 @@ class Config:
     server_port: int = 8713
     out_dir: str = "./out"
     agenda_rows: int = 8
+    orientation: str = "portrait"  # "portrait" or "landscape"
+    flip: bool = False  # rotate the landscape image 180° (if it comes out upside down)
     calendars: list[str] = field(default_factory=list)  # iCal URLs (fallback source)
     atlas_url: str | None = None  # if set, use the Atlas API instead of iCal URLs
     atlas_mine: bool = True  # Atlas: only the user's own events

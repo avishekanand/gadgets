@@ -42,6 +42,7 @@ paint() {
 }
 
 fetch_and_paint() {
+    rm -f "$STAGE"   # BusyBox wget refuses to overwrite an existing file
     if wifi_up && wget -q -O "$STAGE" "$URL" && [ -s "$STAGE" ]; then
         paint
         log "painted from $URL"
