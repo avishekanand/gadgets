@@ -1,0 +1,5 @@
+# Copy to /mnt/us/dashboard/dashboard.conf on the Kindle.
+# URL is the Mac's image server. Use the Mac's Tailscale MagicDNS name or its
+# reserved LAN IP so it doesn't change.
+URL=http://your-mac.tail-scale.ts.net:8713/dashboard.png
+REFRESH_MIN=20
