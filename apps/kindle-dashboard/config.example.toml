@@ -27,3 +27,14 @@ atlas_mine = true        # only your own events (drops shared/colleague calendar
 calendars = [
   # "https://calendar.google.com/calendar/ical/REPLACE%40gmail.com/private-REPLACE/basic.ics",
 ]
+
+# News headlines (same feed engine as the bedside console). The fridge shows one
+# section as a compact HEADLINES block at the bottom of the agenda column.
+news_section = "US"      # which section to show: US, India, Science, "arXiv · IR", AI, Tech
+news_count = 3           # how many stories (0 hides the block)
+# `news` defaults to the built-in feed list (NPR/NYT, The Hindu/NDTV, Quanta/Nature,
+# arXiv cs.IR, MIT TR/TechCrunch, Ars/Verge). Override only to customise feeds, e.g.:
+# news = [
+#   { section = "US", name = "NPR", url = "https://feeds.npr.org/1001/rss.xml" },
+#   { section = "US", name = "NYT", url = "https://rss.nytimes.com/services/xml/rss/nyt/US.xml" },
+# ]

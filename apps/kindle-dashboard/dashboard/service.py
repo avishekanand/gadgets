@@ -20,11 +20,12 @@ from pathlib import Path
 from dashboard.atlas import fetch_atlas_agenda
 from dashboard.calendar import fetch_agenda
 from dashboard.config import Config
+from dashboard.news import fetch_headlines
 from dashboard.render import render_dashboard
 from dashboard.weather import fetch_weather
 
 PNG_NAME = "dashboard.png"
-CACHE_NAME = "last_good.pkl"
+CACHE_NAME = "last_good_v2.pkl"  # v2: the cached tuple now carries news headlines
 
 
 def render_once(cfg: Config, now: datetime) -> Path:
@@ -36,16 +37,21 @@ def render_once(cfg: Config, now: datetime) -> Path:
     try:
         weather = fetch_weather(cfg)
         agenda = fetch_atlas_agenda(cfg, now) if cfg.atlas_url else fetch_agenda(cfg, now)
+        try:
+            # Headlines are optional: a feed outage must never blank the board.
+            news = fetch_headlines(cfg.news, cfg.news_section, cfg.news_count)
+        except Exception:
+            news = []
         updated = now
-        cache.write_bytes(pickle.dumps((weather, agenda, updated)))
+        cache.write_bytes(pickle.dumps((weather, agenda, news, updated)))
         stale = False
     except Exception:
         if not cache.exists():
             raise  # no last-good to fall back to
-        weather, agenda, updated = pickle.loads(cache.read_bytes())
+        weather, agenda, news, updated = pickle.loads(cache.read_bytes())
         stale = True
 
-    img = render_dashboard(weather, agenda, cfg, updated, stale=stale)
+    img = render_dashboard(weather, agenda, cfg, updated, stale=stale, news=news)
     tmp = out / (PNG_NAME + ".tmp")
     img.save(tmp, "PNG")
     tmp.replace(png)

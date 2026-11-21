@@ -102,15 +102,36 @@ def render_dashboard(
     updated: datetime,
     stale: bool = False,
     orientation: str | None = None,
+    news: list[dict] | None = None,
 ) -> Image.Image:
     """Device-ready 600x800 greyscale image for eips. In landscape mode the
     content is composed at 800x600 and rotated 90° so it reads upright when the
     Kindle is turned on its side."""
+    news = news or []
     mode = orientation or cfg.orientation
     if mode == "landscape":
-        canvas = _compose_landscape(weather, agenda, cfg, updated, stale)
+        canvas = _compose_landscape(weather, agenda, cfg, updated, stale, news)
         return canvas.transpose(Image.ROTATE_90 if cfg.flip else Image.ROTATE_270)
-    return _compose_portrait(weather, agenda, cfg, updated, stale)
+    return _compose_portrait(weather, agenda, cfg, updated, stale, news)
+
+
+def _draw_headlines(d, news, x, y, w, section, fonts):
+    """HEADLINES block: a label + up to len(news) stories (title, then source).
+    Returns the y below the block."""
+    f_label, f_title, f_src = fonts
+    d.text((x, y), ("HEADLINES · " + section.upper()) if section else "HEADLINES",
+           font=f_label, fill=GRAY)
+    d.line([x, y + 22, x + w, y + 22], fill=FAINT, width=2)
+    y += 34
+    for it in news:
+        d.text((x, y), "•", font=f_title, fill=INK)
+        d.text((x + 20, y), truncate(it["title"], f_title, w - 20), font=f_title, fill=INK)
+        y += 30
+        src = it.get("source", "")
+        if src:
+            d.text((x + 20, y), src, font=f_src, fill=FAINT)
+        y += 28
+    return y
 
 
 def _compose_portrait(
@@ -119,7 +140,9 @@ def _compose_portrait(
     cfg: Config,
     updated: datetime,
     stale: bool = False,
+    news: list[dict] | None = None,
 ) -> Image.Image:
+    news = news or []
     img = Image.new("L", (W, H), 255)
     d = ImageDraw.Draw(img)
 
@@ -191,7 +214,9 @@ def _compose_landscape(
     cfg: Config,
     updated: datetime,
     stale: bool = False,
+    news: list[dict] | None = None,
 ) -> Image.Image:
+    news = news or []
     LW, LH = 800, 600
     col = 300  # weather column width
     img = Image.new("L", (LW, LH), 255)
@@ -247,7 +272,9 @@ def _compose_landscape(
 
     y = 74
     line_h = 44
-    max_rows = min(cfg.agenda_rows, 9)  # fewer rows fit in 600px height
+    # Leave room at the bottom of the right column for the headlines block.
+    news = news[:3]
+    max_rows = min(cfg.agenda_rows, 6 if news else 9)
     for kind, payload in select_rows(agenda, today, max_rows):
         if kind == "divider":
             y += 6
@@ -263,8 +290,19 @@ def _compose_landscape(
         d.text((rx + 90, y - 1), truncate(e.title, f_title, rw - 90), font=f_title, fill=INK)
         y += line_h
 
+    # ---- headlines block (bottom of the right column) ----
+    if news:
+        # Block height is a 34px header + 58px per story (30 title + 28 source).
+        # Anchor so the last source line's descenders clear the 600px canvas,
+        # but never ride up into the agenda (the y+12 floor).
+        block_h = 34 + 58 * len(news)
+        hy = max(y + 12, LH - 6 - block_h)
+        _draw_headlines(d, news, rx, hy, rw, cfg.news_section,
+                        (f_label, f_title, _font(18)))
+
+    # footer moves to the bottom of the weather column so headlines own the right
     foot = "updated " + updated.strftime("%H:%M") + ("  ·  stale" if stale else "")
-    d.text((rx, LH - 32), foot, font=f_foot, fill=FAINT)
+    d.text((pad, LH - 28), foot, font=f_foot, fill=FAINT)
 
     return img
 

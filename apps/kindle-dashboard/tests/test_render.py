@@ -27,6 +27,27 @@ def test_landscape_canvas_is_800x600():
     assert img.size == (800, 600)
 
 
+def test_landscape_with_news_renders_and_differs():
+    news = [{"title": "Headline one", "source": "NPR"},
+            {"title": "Headline two", "source": "NYT"}]
+    plain = _compose_landscape(_weather(), [], CFG, datetime(2026, 11, 21, 14, 0), news=[])
+    withn = _compose_landscape(_weather(), [], CFG, datetime(2026, 11, 21, 14, 0), news=news)
+    assert withn.size == (800, 600)
+    # drawing headlines must change pixels
+    assert list(plain.getdata()) != list(withn.getdata())
+
+
+def test_headlines_block_does_not_clip_canvas_bottom():
+    # Three stories with descender-heavy sources (default news_count=3).
+    news = [{"title": f"Headline number {i}", "source": "The Verge gpy"} for i in range(3)]
+    img = _compose_landscape(_weather(), [], CFG, datetime(2026, 11, 21, 14, 0), news=news)
+    px = img.load()
+    rx = 324  # right (agenda/headlines) column start
+    # the last two pixel rows of the right column must be blank — nothing clipped
+    for yy in (598, 599):
+        assert all(px[xx, yy] == 255 for xx in range(rx, 800))
+
+
 def test_landscape_render_is_device_portrait_size():
     img = render_dashboard(_weather(), [], CFG, datetime(2026, 11, 21, 14, 0), orientation="landscape")
     assert img.mode == "L"

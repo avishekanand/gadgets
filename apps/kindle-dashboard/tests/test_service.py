@@ -25,10 +25,15 @@ def _free_port() -> int:
     return port
 
 
+def _headlines(*_a, **_k):
+    return [{"title": "Big news today", "source": "NPR", "summary": "", "url": "", "published": None}]
+
+
 def test_render_once_writes_png(tmp_path, monkeypatch):
     cfg = Config(lat=1, lon=2, units="C", out_dir=str(tmp_path))
     monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
     monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+    monkeypatch.setattr(svc, "fetch_headlines", _headlines)
     p = svc.render_once(cfg, datetime(2026, 11, 21, 14, 0))
     assert p.exists()
     img = Image.open(p)
@@ -36,11 +41,31 @@ def test_render_once_writes_png(tmp_path, monkeypatch):
     assert img.size == (600, 800)
 
 
+def test_news_outage_does_not_blank_the_board(tmp_path, monkeypatch):
+    cfg = Config(lat=1, lon=2, units="C", out_dir=str(tmp_path))
+    monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
+    monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+
+    def all_feeds_down(*a, **k):
+        raise RuntimeError("all news feeds failed")
+
+    captured = {}
+    real = svc.render_dashboard
+    monkeypatch.setattr(svc, "fetch_headlines", all_feeds_down)
+    monkeypatch.setattr(svc, "render_dashboard",
+                        lambda *a, **k: captured.update(news=k.get("news"), stale=k.get("stale")) or real(*a, **k))
+    p = svc.render_once(cfg, datetime(2026, 11, 21, 14, 0))
+    assert p.exists()
+    assert captured["news"] == []      # headlines dropped
+    assert captured["stale"] is False  # but weather/agenda are fresh — not stale
+
+
 def test_fetch_failure_keeps_last_good(tmp_path, monkeypatch):
     cfg = Config(lat=1, lon=2, units="C", out_dir=str(tmp_path))
     # First, a successful render to seed the last-good cache.
     monkeypatch.setattr(svc, "fetch_weather", lambda c: _weather())
     monkeypatch.setattr(svc, "fetch_agenda", lambda c, n: [])
+    monkeypatch.setattr(svc, "fetch_headlines", _headlines)
     svc.render_once(cfg, datetime(2026, 11, 21, 14, 0))
 
     # Now the weather fetch fails; render_once must still produce a PNG, marked stale.
